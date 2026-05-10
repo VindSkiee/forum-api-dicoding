@@ -1,0 +1,36 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          APP_DIR: ${{ secrets.APP_DIR }}
+          PM2_APP_NAME: ${{ secrets.PM2_APP_NAME }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          envs: APP_DIR,PM2_APP_NAME,GITHUB_REF_NAME
+          script: |
+            set -e
+            APP_DIR="${APP_DIR:-/var/www/forum-api}"
+            PM2_APP_NAME="${PM2_APP_NAME:-forum-api}"
+            BRANCH="${GITHUB_REF_NAME:-main}"
+
+            cd "$APP_DIR"
+            git fetch --all
+            git checkout "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+            npm install
+            npm run migrate -- up
+            pm2 reload "$PM2_APP_NAME" || pm2 start src/app.js --name "$PM2_APP_NAME"
