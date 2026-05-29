@@ -12,10 +12,11 @@ import jwt from 'jsonwebtoken';
 describe('HTTP server - /threads/{threadId}/comments/{commentId}/replies endpoint', () => {
   let app;
   let accessToken;
+  const accessTokenKey = process.env.ACCESS_TOKEN_KEY || 'test_access_token_key';
 
   beforeAll(async () => {
     app = await createServer(container);
-    accessToken = jwt.sign({ id: 'user-123' }, process.env.ACCESS_TOKEN_KEY);
+    accessToken = jwt.sign({ id: 'user-123' }, accessTokenKey);
   });
 
   afterEach(async () => {
@@ -30,6 +31,24 @@ describe('HTTP server - /threads/{threadId}/comments/{commentId}/replies endpoin
   });
 
   describe('when POST /threads/.../replies', () => {
+    it('should response 201 and persisted reply', async () => {
+      await UsersTableTestHelper.addUser({ id: 'user-123' });
+      await ThreadsTableTestHelper.addThread({ id: 'thread-123', owner: 'user-123' });
+      await CommentsTableTestHelper.addComment({ id: 'comment-123', threadId: 'thread-123', owner: 'user-123' });
+
+      const response = await request(app)
+        .post('/threads/thread-123/comments/comment-123/replies')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'sebuah balasan' });
+
+      const responseJson = JSON.parse(response.text);
+      expect(response.status).toEqual(201);
+      expect(responseJson.status).toEqual('success');
+      expect(responseJson.data.addedReply).toBeDefined();
+      expect(responseJson.data.addedReply.content).toEqual('sebuah balasan');
+      expect(responseJson.data.addedReply.owner).toEqual('user-123');
+    });
+
     it('should response 400 when request payload not contain needed property', async () => {
       await UsersTableTestHelper.addUser({ id: 'user-123' });
       await ThreadsTableTestHelper.addThread({ id: 'thread-123', owner: 'user-123' });
@@ -46,9 +65,40 @@ describe('HTTP server - /threads/{threadId}/comments/{commentId}/replies endpoin
       expect(responseJson.status).toEqual('fail');
       expect(responseJson.message).toEqual('tidak dapat membuat balasan baru karena properti yang dibutuhkan tidak ada');
     });
+
+    it('should response 401 when token is invalid', async () => {
+      await UsersTableTestHelper.addUser({ id: 'user-123' });
+      await ThreadsTableTestHelper.addThread({ id: 'thread-123', owner: 'user-123' });
+      await CommentsTableTestHelper.addComment({ id: 'comment-123', threadId: 'thread-123', owner: 'user-123' });
+
+      const response = await request(app)
+        .post('/threads/thread-123/comments/comment-123/replies')
+        .set('Authorization', 'Bearer token-tidak-valid')
+        .send({ content: 'sebuah balasan' });
+
+      const responseJson = JSON.parse(response.text);
+      expect(response.status).toEqual(401);
+      expect(responseJson.status).toEqual('fail');
+      expect(responseJson.message).toEqual('Token tidak valid');
+    });
   });
 
   describe('when DELETE /threads/.../replies/{replyId}', () => {
+    it('should response 200 and soft delete reply', async () => {
+      await UsersTableTestHelper.addUser({ id: 'user-123' });
+      await ThreadsTableTestHelper.addThread({ id: 'thread-123', owner: 'user-123' });
+      await CommentsTableTestHelper.addComment({ id: 'comment-123', threadId: 'thread-123', owner: 'user-123' });
+      await RepliesTableTestHelper.addReply({ id: 'reply-123', commentId: 'comment-123', owner: 'user-123' });
+
+      const response = await request(app)
+        .delete('/threads/thread-123/comments/comment-123/replies/reply-123')
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      const responseJson = JSON.parse(response.text);
+      expect(response.status).toEqual(200);
+      expect(responseJson.status).toEqual('success');
+    });
+
     it('should response 404 when reply is not found', async () => {
       await UsersTableTestHelper.addUser({ id: 'user-123' });
       await ThreadsTableTestHelper.addThread({ id: 'thread-123', owner: 'user-123' });
@@ -73,7 +123,7 @@ describe('HTTP server - /threads/{threadId}/comments/{commentId}/replies endpoin
 
       // Arrange
       await UsersTableTestHelper.addUser({ id: 'user-456', username: 'otheruser' });
-      const otherAccessToken = jwt.sign({ id: 'user-456' }, process.env.ACCESS_TOKEN_KEY);
+      const otherAccessToken = jwt.sign({ id: 'user-456' }, accessTokenKey);
 
       // Action
       const response = await request(app)

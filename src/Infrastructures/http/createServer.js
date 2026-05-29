@@ -3,6 +3,7 @@ import ClientError from '../../Commons/exceptions/ClientError.js';
 import DomainErrorTranslator from '../../Commons/exceptions/DomainErrorTranslator.js';
 import users from '../../Interfaces/http/api/users/index.js';
 import authentications from '../../Interfaces/http/api/authentications/index.js';
+import createHealthApi from '../../Interfaces/http/api/health/index.js';
 import authMiddleware from '../../Interfaces/http/middleware/auth.js';
 import threadsRateLimiter from '../../Interfaces/http/middleware/rateLimit.js';
 import createThreadsApi from '../../Interfaces/http/api/threads/index.js';
@@ -21,6 +22,7 @@ const createServer = async (container) => {
   // Register routes
   app.use('/users', users(container));
   app.use('/authentications', authentications(container));
+  app.use('/health', createHealthApi());
 
   app.use('/threads', threadsRateLimiter);
   app.use('/threads', threadsRouter);
