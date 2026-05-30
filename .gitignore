@@ -5,3 +5,8 @@ config/database/test.json
 coverage
 .env
 .test.env
+postman_collection/Forum API V2 Test.postman_collection.json
+postman_collection/Forum API V2 Test.postman_environment.json
+newman-report.json
+.github/workflows/postman-collection.yml
+nginx.conf

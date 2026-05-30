@@ -11,6 +11,7 @@
     "test:watch": "vitest --watch",
     "pretest:coverage": "node ./scripts/ensure-coverage-dir.js",
     "test:coverage": "vitest --coverage --run",
+    "postman:test": "newman run \"postman_collection/Forum API V2 Test.postman_collection.json\" -e \"postman_collection/Forum API V2 Test.postman_environment.json\" --timeout-request 10000",
     "migrate": "node-pg-migrate",
     "migrate:test": "node-pg-migrate --envPath .test.env",
     "lint": "eslint ./",
