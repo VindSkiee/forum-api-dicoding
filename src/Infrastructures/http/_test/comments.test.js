@@ -47,7 +47,7 @@ describe('HTTP server - /threads/{threadId}/comments endpoint', () => {
 
       // Assert
       const responseJson = JSON.parse(response.text);
-      expect(response.status).toEqual(400);
+      expect(response.status).toEqual(201);
       expect(responseJson.status).toEqual('success');
       expect(responseJson.data.addedComment).toBeDefined();
       expect(responseJson.data.addedComment.content).toEqual(
