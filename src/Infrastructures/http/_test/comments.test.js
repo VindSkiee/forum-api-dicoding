@@ -45,7 +45,7 @@ describe('HTTP server - /threads/{threadId}/comments endpoint', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send(requestPayload);
 
-      // Asser
+      // Asse
       const responseJson = JSON.parse(response.text);
       expect(response.status).toEqual(201);
       expect(responseJson.status).toEqual('success');
